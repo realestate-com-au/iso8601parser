@@ -20,7 +20,7 @@ unichar ISO8601DefaultTimeSeparatorCharacter = DEFAULT_TIME_SEPARATOR;
 #define ISO_TIME_WITH_TIMEZONE_FORMAT  ISO_TIME_FORMAT @"Z"
 //printf formats.
 #define ISO_TIMEZONE_UTC_FORMAT @"Z"
-#define ISO_TIMEZONE_OFFSET_FORMAT @"%+02d%02d"
+#define ISO_TIMEZONE_OFFSET_FORMAT @"%+02d%@%02d"
 
 @interface ISO8601DateFormatter(UnparsingPrivate)
 
@@ -597,6 +597,7 @@ static BOOL is_leap_year(unsigned year);
 @synthesize format;
 @synthesize includeTime;
 @synthesize timeSeparator;
+@synthesize timeZoneSeparator;
 
 - (NSString *) replaceColonsInString:(NSString *)timeFormat withTimeSeparator:(unichar)timeSep {
 	if (timeSep != ':') {
@@ -649,10 +650,12 @@ static BOOL is_leap_year(unsigned year);
 	if (includeTime) {
 		int offset = [timeZone secondsFromGMT];
 		offset /= 60;  //bring down to minutes
-		if (offset == 0)
-			str = [str stringByAppendingString:ISO_TIMEZONE_UTC_FORMAT];
-		else
-			str = [str stringByAppendingFormat:ISO_TIMEZONE_OFFSET_FORMAT, offset / 60, offset % 60];
+		if (offset == 0) {
+            str = [str stringByAppendingString:ISO_TIMEZONE_UTC_FORMAT];
+        } else {
+            NSString *separator = timeZoneSeparator ? [NSString stringWithFormat:@"%c", timeZoneSeparator] : @"";
+            str = [str stringByAppendingFormat:ISO_TIMEZONE_OFFSET_FORMAT, offset / 60, separator, offset % 60];
+        }
 	}
 	return str;
 }
