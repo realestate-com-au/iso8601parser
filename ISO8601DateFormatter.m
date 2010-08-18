@@ -646,7 +646,7 @@ static BOOL is_leap_year(unsigned year);
 	[formatter release];
 
 	if (includeTime) {
-		int offset = [timeZone secondsFromGMT] - [timeZone daylightSavingTimeOffset];
+		int offset = [timeZone secondsFromGMTForDate:date];
 		offset /= 60;  //bring down to minutes
 		if (offset == 0) {
             str = [str stringByAppendingString:ISO_TIMEZONE_UTC_FORMAT];
