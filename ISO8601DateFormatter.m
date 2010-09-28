@@ -67,7 +67,7 @@ static BOOL is_leap_year(unsigned year);
  *YYYY-MM-DD
  *YYYY-MM
  *YYYY
- *YY //century 
+ *YY //century
  * //Implied century: YY is 00-99
  *  YYMMDD
  *  YY-MM-DD
@@ -523,8 +523,8 @@ static BOOL is_leap_year(unsigned year);
 			components.year = year;
 			components.day = day;
 			components.hour = hour;
-			components.minute = minute;
-			components.second = second;
+			components.minute = (NSInteger)minute;
+			components.second = (NSInteger)second;
 
 			switch(dateSpecification) {
 				case monthAndDate:
