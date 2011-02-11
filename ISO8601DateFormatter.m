@@ -33,6 +33,19 @@ unichar ISO8601DefaultTimeSeparatorCharacter = DEFAULT_TIME_SEPARATOR;
 
 @implementation ISO8601DateFormatter
 
++ (NSString *)stringFromDate:(NSDate *)date;
+{
+    static ISO8601DateFormatter *timeZoneFormatter = nil;
+    
+    if (!timeZoneFormatter) {
+        timeZoneFormatter = [[ISO8601DateFormatter alloc] init];
+        timeZoneFormatter.includeTime = YES;
+        timeZoneFormatter.timeZoneSeparator = ISO8601DefaultTimeSeparatorCharacter;
+    }
+    
+    return [timeZoneFormatter stringFromDate:date];
+}
+
 - (id) init {
 	if ((self = [super init])) {
 		format = ISO8601DateFormatCalendar;
