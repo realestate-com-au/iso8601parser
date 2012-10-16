@@ -46,7 +46,7 @@ extern unichar ISO8601DefaultTimeSeparatorCharacter;
 
 + (NSString *)stringFromDate:(NSDate *)date;
 
-@property(retain) NSTimeZone *defaultTimeZone;
+@property(strong) NSTimeZone *defaultTimeZone;
 
 #pragma mark Parsing
 
