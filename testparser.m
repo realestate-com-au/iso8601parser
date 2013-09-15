@@ -10,6 +10,8 @@ int main(int argc, const char **argv) {
 		parseStrictly = YES;
 	}
 
+	[NSTimeZone setDefaultTimeZone:[NSTimeZone timeZoneForSecondsFromGMT:+0]];
+
 	ISO8601DateFormatter *formatter = [[[ISO8601DateFormatter alloc] init] autorelease];
 	formatter.parsesStrictly = parseStrictly;
 
@@ -17,7 +19,7 @@ int main(int argc, const char **argv) {
 		NSString *str = [NSString stringWithUTF8String:*++argv];
 		NSLog(@"Parsing strictly: %hhi", parseStrictly);
 		NSDate *date = [formatter dateFromString:str];
-		fputs([[NSString stringWithFormat:@"%@ %C %@\n", str, 0x2192, date] UTF8String], stdout);
+		fputs([[NSString stringWithFormat:@"%@ %C %@\n", str, (unsigned short)0x2192, date] UTF8String], stdout);
 	}
 
 	[pool release];

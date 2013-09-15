@@ -36,17 +36,22 @@ extern unichar ISO8601DefaultTimeSeparatorCharacter;
 
 @interface ISO8601DateFormatter: NSFormatter
 {
+	NSString *lastUsedFormatString;
+	NSDateFormatter *unparsingFormatter;
+
+	NSCalendar *parsingCalendar, *unparsingCalendar;
+
 	NSTimeZone *defaultTimeZone;
 	ISO8601DateFormat format;
 	unichar timeSeparator;
-    unichar timeZoneSeparator;
 	BOOL includeTime;
 	BOOL parsesStrictly;
 }
 
-+ (NSString *)stringFromDate:(NSDate *)date;
+//Call this if you get a memory warning.
++ (void) purgeGlobalCaches;
 
-@property(strong) NSTimeZone *defaultTimeZone;
+@property(nonatomic, retain) NSTimeZone *defaultTimeZone;
 
 #pragma mark Parsing
 
@@ -56,7 +61,7 @@ extern unichar ISO8601DefaultTimeSeparatorCharacter;
 
 - (NSDateComponents *) dateComponentsFromString:(NSString *)string;
 - (NSDateComponents *) dateComponentsFromString:(NSString *)string timeZone:(out NSTimeZone **)outTimeZone;
-- (NSDateComponents *) dateComponentsFromString:(NSString *)string timeZone:(out NSTimeZone **)outTimeZone range:(out NSRange *)outRange;
+- (NSDateComponents *) dateComponentsFromString:(NSString *)string timeZone:(out NSTimeZone **)outTimeZone range:(out NSRange *)outRange fractionOfSecond:(NSTimeInterval *)outFractionOfSecond;
 
 - (NSDate *) dateFromString:(NSString *)string;
 - (NSDate *) dateFromString:(NSString *)string timeZone:(out NSTimeZone **)outTimeZone;
