@@ -10,11 +10,8 @@
 #import "ISO8601ForCocoaCalendarDateTests.h"
 #import "ISO8601DateFormatter.h"
 #import "NSLocale+UnitTestSwizzling.h"
+#import "PRHNamedCharacter.h"
 #include <vis.h>
-
-typedef NS_ENUM(unichar, PRHNamedCharacter) {
-	SNOWMAN = 0x2603
-};
 
 static const NSTimeInterval gSecondsPerHour = 3600.0;
 
@@ -55,7 +52,7 @@ expectTimeIntervalSinceReferenceDate:(NSTimeInterval)expectedTimeIntervalSinceRe
 	STAssertNotNil(timeZone, @"Parsing a valid ISO 8601 calendar date that specifies a time zone offset should return an NSTimeZone object");
 	STAssertEqualsWithAccuracy([date timeIntervalSinceReferenceDate], expectedTimeIntervalSinceReferenceDate, 0.0001, @"Date parsed from '%@' should be %f seconds since the reference date", dateString, expectedTimeIntervalSinceReferenceDate);
 	NSInteger secondsFromGMTForDate = [timeZone secondsFromGMTForDate:date];
-	STAssertEquals(secondsFromGMTForDate, (NSInteger)expectedSecondsFromGMT, @"Time zone parsed from '%@' should be %ld seconds (%f hours) from GMT, not %ld seconds (%f hours)", dateString, expectedSecondsFromGMT, expectedHoursFromGMT, secondsFromGMTForDate, secondsFromGMTForDate / gSecondsPerHour);
+	STAssertEquals(secondsFromGMTForDate, (NSInteger)expectedSecondsFromGMT, @"Time zone parsed from '%@' should be %f seconds (%f hours) from GMT, not %ld seconds (%f hours)", dateString, expectedSecondsFromGMT, expectedHoursFromGMT, secondsFromGMTForDate, secondsFromGMTForDate / gSecondsPerHour);
 }
 
 - (void) attemptToUnparseDateWithTimeIntervalSinceReferenceDate:(NSTimeInterval)timeIntervalSinceReferenceDate
@@ -453,6 +450,98 @@ expectTimeZoneWithHoursFromGMT:expectedHoursFromGMT];
 	NSMutableData *escapedData = [NSMutableData dataWithLength:length * 4UL + 1UL];
 	escapedData.length = (NSUInteger)strvis(escapedData.mutableBytes, unescapedData.bytes, VIS_WHITE | VIS_CSTYLE);
 	return [[NSString alloc] initWithData:escapedData encoding:NSASCIIStringEncoding];
+}
+
+//This is really only here because test code counts toward code coverage.
+- (void) testStringEscaping {
+	NSString *string;
+	NSString *escapedString;
+
+	string = @"foo";
+	escapedString = [self stringByEscapingString:string];
+	STAssertEqualObjects(escapedString, string, @"Escaping an all-letters string should effect no change, not produce '%@'", escapedString);
+
+	string = @"foo123";
+	escapedString = [self stringByEscapingString:string];
+	STAssertEqualObjects(escapedString, string, @"Escaping an alphanumeric string should effect no change, not produce '%@'", escapedString);
+
+	NSString *expectedString;
+	expectedString = @"\\t\\n\\v\\f\\r";
+	string = @"\t\n\v\f\r";
+	escapedString = [self stringByEscapingString:string];
+	STAssertEqualObjects(escapedString, expectedString, @"Escaping a string of whitespace in order should produce escape sequences in order ('%@'), not '%@'", expectedString, escapedString);
+}
+
+- (void) testParsingSloppyDatesStrictly {
+	_iso8601DateFormatter.parsesStrictly = true;
+
+	NSString *string;
+	NSDate *date;
+
+	string = @"130918";
+	date = [_iso8601DateFormatter dateFromString:string];
+	STAssertNil(date, @"Parsing '%@' strictly should return nil, not %@ (%f)", string, date, date.timeIntervalSinceReferenceDate);
+
+	string = @"2013-0918";
+	date = [_iso8601DateFormatter dateFromString:string];
+	STAssertNil(date, @"Parsing '%@' strictly should return nil, not %@ (%f)", string, date, date.timeIntervalSinceReferenceDate);
+}
+
+- (void) testParsingDateFromSubstring {
+	NSString *string;
+	NSTimeInterval expectedTimeIntervalSinceReferenceDate;
+	NSDate *expectedDate;
+	NSTimeZone *expectedTimeZone;
+	NSRange expectedRange;
+	NSDate *date;
+	NSTimeZone *timeZone;
+	NSRange range;
+
+#define PREFIX @" \t\t "
+#define DATE @"2013-09-18T04:18Z"
+#define NOT_A_DATE @"\u2603"
+#define SUFFIX @" \t\t "
+
+	string = PREFIX DATE;
+	expectedTimeIntervalSinceReferenceDate = 401170680.0;
+	expectedDate = [NSDate dateWithTimeIntervalSinceReferenceDate:expectedTimeIntervalSinceReferenceDate];
+	expectedTimeZone = [NSTimeZone timeZoneWithName:@"UTC"];
+	expectedRange = (NSRange){ PREFIX.length, DATE.length };
+	date = [_iso8601DateFormatter dateFromString:string timeZone:&timeZone range:&range];
+	STAssertEqualObjects(date, expectedDate, @"Date from substring of '%@' should be %@ (%f), not %@ (%f) (%+f seconds difference)", string, expectedDate, expectedTimeIntervalSinceReferenceDate, date, date.timeIntervalSinceReferenceDate, [date timeIntervalSinceDate:expectedDate]);
+	STAssertEqualObjects(timeZone, expectedTimeZone, @"Time zone from substring of '%@' should be %@, not %@", string, expectedTimeZone, timeZone);
+	STAssertEquals(range, expectedRange, @"Range of date from substring of '%@' should be %@ ('%@'), not %@ ('%@')", string, NSStringFromRange(expectedRange), [string substringWithRange:expectedRange], NSStringFromRange(range), [string substringWithRange:range]);
+
+	string = PREFIX DATE SUFFIX;
+	expectedTimeIntervalSinceReferenceDate = 401170680.0;
+	expectedDate = [NSDate dateWithTimeIntervalSinceReferenceDate:expectedTimeIntervalSinceReferenceDate];
+	expectedTimeZone = [NSTimeZone timeZoneWithName:@"UTC"];
+	expectedRange = (NSRange){ PREFIX.length, DATE.length };
+	date = [_iso8601DateFormatter dateFromString:string timeZone:&timeZone range:&range];
+	STAssertEqualObjects(date, expectedDate, @"Date from substring of '%@' should be %@ (%f), not %@ (%f) (%+f seconds difference)", string, expectedDate, expectedTimeIntervalSinceReferenceDate, date, date.timeIntervalSinceReferenceDate, [date timeIntervalSinceDate:expectedDate]);
+	STAssertEqualObjects(timeZone, expectedTimeZone, @"Time zone from substring of '%@' should be %@, not %@", string, expectedTimeZone, timeZone);
+	STAssertEquals(range, expectedRange, @"Range of date from substring of '%@' should be %@ ('%@'), not %@ ('%@')", string, NSStringFromRange(expectedRange), [string substringWithRange:expectedRange], NSStringFromRange(range), [string substringWithRange:range]);
+
+	string = DATE SUFFIX;
+	expectedTimeIntervalSinceReferenceDate = 401170680.0;
+	expectedDate = [NSDate dateWithTimeIntervalSinceReferenceDate:expectedTimeIntervalSinceReferenceDate];
+	expectedTimeZone = [NSTimeZone timeZoneWithName:@"UTC"];
+	expectedRange = (NSRange){ 0, DATE.length };
+	date = [_iso8601DateFormatter dateFromString:string timeZone:&timeZone range:&range];
+	STAssertEqualObjects(date, expectedDate, @"Date from substring of '%@' should be %@ (%f), not %@ (%f) (%+f seconds difference)", string, expectedDate, expectedTimeIntervalSinceReferenceDate, date, date.timeIntervalSinceReferenceDate, [date timeIntervalSinceDate:expectedDate]);
+	STAssertEqualObjects(timeZone, expectedTimeZone, @"Time zone from substring of '%@' should be %@, not %@", string, expectedTimeZone, timeZone);
+	STAssertEquals(range, expectedRange, @"Range of date from substring of '%@' should be %@ ('%@'), not %@ ('%@')", string, NSStringFromRange(expectedRange), [string substringWithRange:expectedRange], NSStringFromRange(range), [string substringWithRange:range]);
+
+	string = PREFIX NOT_A_DATE SUFFIX;
+	//Note that timeZone and range are both set to previous results at this point. If dateFromString::: doesn't set them, that will cause a test failure.
+	expectedTimeIntervalSinceReferenceDate = 0.0;
+	expectedDate = nil;
+	expectedTimeZone = nil;
+	expectedRange = (NSRange){ NSNotFound, 0 };
+	date = [_iso8601DateFormatter dateFromString:string timeZone:&timeZone range:&range];
+	STAssertNil(date, @"Date from substring of '%@' should be nil, not %@ (%f)", string, date, date.timeIntervalSinceReferenceDate);
+	STAssertNil(timeZone, @"Time zone from substring of '%@' should be nil, not %@", string, timeZone);
+	STAssertEquals(range, expectedRange, @"Range of date from substring of '%@' should be %@ ('%@'), not %@ ('%@')", string, NSStringFromRange(expectedRange), [string substringWithRange:expectedRange], NSStringFromRange(range), [string substringWithRange:range]);
 }
 
 @end
